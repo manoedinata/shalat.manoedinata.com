@@ -208,6 +208,21 @@
             jadwalIsyaTitle.text(response["jadwal"]["isya'"])
         }
     </script>
+
+    <script>
+    // Switch tema
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        themeSwitch("dark")
+    }
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+        themeSwitch(event.matches ? "dark" : "light")
+    });
+
+    // Fungsi: Theme switch
+    function themeSwitch(theme) {
+        $("html").attr("data-bs-theme", theme)
+    }
+    </script>
     
 </body>
 </html>
