@@ -137,7 +137,11 @@
         if (navigator.geolocation) {
             lokasiStatus.text("Mengambil data lokasi...")
             navigator.geolocation.getCurrentPosition(function suksesLokasi(posisi) {
+                // Set informasi lokasi
                 setInfoLokasi(posisi)
+
+                // Request API
+                lokasiStatus.text("Mengambil data dari API...")
                 requestAPIJadwal(posisi.coords.latitude, posisi.coords.longitude)
             }, function errorLokasi(error) {
                 setErrorLokasi(error)
@@ -149,7 +153,6 @@
         // Fungsi: Set informasi lokasi (lat & long)
         // Dieksekusi ketika browser berhasil mendapatkan lokasi pengguna
         function setInfoLokasi(posisi) {
-            lokasiStatus.hide()
             latitudeSpan.text(posisi.coords.latitude)
             longitudeSpan.text(posisi.coords.longitude)
         }
@@ -182,7 +185,16 @@
                     "lat": latitude,
                     "long": longitude
                 },
-                success: setJadwal
+                success: function (response) {
+                    // Set jadwal
+                    setJadwal(response),
+
+                    // Sembunyikan status
+                    lokasiStatus.hide()
+                },
+                error: function(error) {
+                    lokasiStatus.text("Tidak dapat mengambil data: " + error.statusText + error.status)
+                }
             })
         }
 
