@@ -59,7 +59,7 @@
                                     <form action="" method="get">
                                         <div class="mb-3">
                                             <label for="spesifikDate" class="form-label">Tanggal</label>
-                                            <input type="date" name="spesifikDate" class="form-control" id="spesifikDate">
+                                            <input type="date" name="date" class="form-control" id="spesifikDate">
                                         </div>
                                     </form>
                                 </div>
@@ -68,11 +68,11 @@
                                     <form action="" method="get">
                                         <div class="mb-3">
                                             <label for="rangeStartDate" class="form-label">Rentang Awal</label>
-                                            <input type="date" name="rangeStartDate" class="form-control" id="rangeStartDate">
+                                            <input type="date" name="start" class="form-control" id="rangeStartDate">
                                         </div>
                                         <div class="mb-3">
                                             <label for="rangeEndDate" class="form-label">Rentang Akhir</label>
-                                            <input type="date" class="form-control" id="rangeEndDate">
+                                            <input type="date" name="end" class="form-control" id="rangeEndDate">
                                         </div>
 
                                         <div class="mb-3">
@@ -95,10 +95,31 @@
                                 return today
                             }
 
-                            // Atur tanggal default
-                            $("#spesifikDate").val(getTodayDate())
-                            $("#rangeStartDate").val(getTodayDate())
+                            // Fungsi: Mendapatkan URL parameter
+                            // https://stackoverflow.com/a/21903119
+                            var getUrlParameter = function getUrlParameter(sParam) {
+                                var sPageURL = window.location.search.substring(1),
+                                    sURLVariables = sPageURL.split('&'),
+                                    sParameterName,
+                                    i;
 
+                                for (i = 0; i < sURLVariables.length; i++) {
+                                    sParameterName = sURLVariables[i].split('=');
+
+                                    if (sParameterName[0] === sParam) {
+                                        return sParameterName[1] === undefined ? true : decodeURIComponent(sParameterName[1]);
+                                    }
+                                }
+                                return false;
+                            };
+
+                            // Atur tanggal default
+                            if (getUrlParameter("date")) {
+                                $("#spesifikDate").val(getUrlParameter("date"))
+                            } else if(!getUrlParameter("start") && !getUrlParameter("end")) {
+                                $("#spesifikDate").val(getTodayDate())
+                            }
+                            
                             // Proses pilihan opsi
                             $("input[name=rangeAtauSpesifik]").change(function() {
                                 if (this.value == "spesifik") {
@@ -109,6 +130,24 @@
                                     $("#rangeForm").show()
                                 }
                             })
+                            
+                            // Autosubmit spesifik
+                            $("#spesifikDate").change(function () {
+                                $("#spesifikForm").find("form").submit()
+                            })
+
+                            // Sesuaikan kondisi dan radio button
+                            // Atur default range date value
+                            if (getUrlParameter("start") && getUrlParameter("end")) {
+                                $("#rangeStartDate").val(getUrlParameter("start"))
+                                $("#rangeEndDate").val(getUrlParameter("end"))
+
+                                $("input[name=rangeAtauSpesifik]").val(["range"])
+                                $("input[name=rangeAtauSpesifik]").change()
+                            } else {
+                                $("#rangeStartDate").val(getTodayDate())
+                                $("input[name=rangeAtauSpesifik]").val(["spesifik"])
+                            }
                         </script>
 
                         <hr>
@@ -139,7 +178,7 @@
         </div>
         <div id="jadwal-info">
             <div class="container">
-                <div class="row">
+                <div id="jadwalKartu" class="row">
 
                     <!-- Shubuh -->
                     <div class="col-md-6 mb-3">
@@ -207,6 +246,28 @@
                     </div>
 
                 </div>
+                <div id="jadwalTable" class="row">
+                <!-- <div id="jadwalTable" class="row" style="display: none;"> -->
+                    <div class="col">
+
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Tanggal</th>
+                                    <th scope="col">Shubuh</th>
+                                    <th scope="col">Dhuhur</th>
+                                    <th scope="col">Ashar</th>
+                                    <th scope="col">Maghrib</th>
+                                    <th scope="col">Isya'</th>
+                                </tr>
+                            </thead>
+                            <tbody id="jadwalTableBody">
+                            </tbody>
+                        </table>
+
+                    </div>
+                </div>
+
             </div>
         </div>
     </main>
@@ -224,6 +285,18 @@
         var jadwalMaghribTitle = $("#jadwalMaghribTitle").first()
         var jadwalIsyaTitle = $("#jadwalIsyaTitle").first()
 
+        var jadwalRangeTable = $("#jadwalTable").find("table").first()
+        var jadwalRangeTableBody = $("#jadwalTableBody")
+
+        // Proses pilihan opsi
+        if (getUrlParameter("start") && getUrlParameter("end")) {
+            $("#jadwalTable").show()
+            $("#jadwalKartu").hide()
+        } else {
+            $("#jadwalTable").hide()
+            $("#jadwalKartu").show()
+        }
+
         if (navigator.geolocation) {
             lokasiStatus.text("Mengambil data lokasi...")
             navigator.geolocation.getCurrentPosition(function suksesLokasi(posisi) {
@@ -232,7 +305,12 @@
 
                 // Request API
                 lokasiStatus.text("Mengambil data dari API...")
-                requestAPIJadwal(posisi.coords.latitude, posisi.coords.longitude)
+                if (getUrlParameter("start") && getUrlParameter("end")) {
+                    requestAPIJadwalRange(reformatTanggal(getUrlParameter("start")), reformatTanggal(getUrlParameter("end")), posisi.coords.latitude, posisi.coords.longitude)
+                } else {
+                    requestAPIJadwal(posisi.coords.latitude, posisi.coords.longitude)
+                }
+
             }, function errorLokasi(error) {
                 setErrorLokasi(error)
             });
@@ -266,12 +344,20 @@
             }
         }
 
-        // Fungsi: Request API
+        // Fungsi: Reformat tanggal
+        // TODO: Implementasi yang lebih baik
+        function reformatTanggal(tanggal) {
+            tanggalSplitted = tanggal.split("-")
+            return tanggalSplitted[2] + "-" + tanggalSplitted[1] + "-" + tanggalSplitted[0]
+        }
+
+        // Fungsi: Request API (spesifik)
         function requestAPIJadwal(latitude, longitude) {
             $.ajax({
                 url: "https://api.shalat.manoedinata.me/shalat",
                 type: "get",
                 data: {
+                    "tanggal": reformatTanggal($("#spesifikDate").val()),
                     "lat": latitude,
                     "long": longitude
                 },
@@ -288,13 +374,83 @@
             })
         }
 
-        // Fungsi: Set jadwal
+        // Fungsi: Set jadwal (spesifik)
         function setJadwal(response) {
             jadwalShubuhTitle.text(response["jadwal"]["shubuh"])
             jadwalDhuhurTitle.text(response["jadwal"]["dhuhur"])
             jadwalAsharTitle.text(response["jadwal"]["ashar"])
             jadwalMaghribTitle.text(response["jadwal"]["maghrib"])
             jadwalIsyaTitle.text(response["jadwal"]["isya'"])
+        }
+
+        // Fungsi: Request API (range)
+        function requestAPIJadwalRange(start, end, latitude, longitude) {
+            $.ajax({
+                url: "https://api.shalat.manoedinata.me/range_shalat",
+                type: "get",
+                data: {
+                    "start": start,
+                    "end": end,
+                    "lat": latitude,
+                    "long": longitude
+                },
+                success: function (response) {
+                    // Set jadwal
+                    setJadwalRange(response),
+
+                    // Sembunyikan status
+                    lokasiStatus.hide()
+                },
+                error: function(error) {
+                    lokasiStatus.text("Tidak dapat mengambil data: " + error.statusText + error.status)
+                }
+            })
+        }
+
+        // Fungsi: Set jadwal (range)
+        function setJadwalRange(response) {
+            jadwalRangeTableBody.empty()
+
+            console.log(response)
+            console.log(response["jadwal"].length)
+            for (var i = 0; i < response["jadwal"].length; i++) {
+                var jadwal = response["jadwal"][i]
+
+                var tdTanggal = document.createElement("td")
+                tdTanggal.innerHTML = jadwal["date"]
+                var tdShubuh = document.createElement("td")
+                tdShubuh.innerHTML = jadwal["jadwal"]["shubuh"]
+                var tdDhuhur = document.createElement("td")
+                tdDhuhur.innerHTML = jadwal["jadwal"]["dhuhur"]
+                var tdAshar = document.createElement("td")
+                tdAshar.innerHTML = jadwal["jadwal"]["ashar"]
+                var tdMaghrib = document.createElement("td")
+                tdMaghrib.innerHTML = jadwal["jadwal"]["maghrib"]
+                var tdIsya = document.createElement("td")
+                tdIsya.innerHTML = jadwal["jadwal"]["isya'"]
+
+                var trElement = document.createElement("tr")
+                trElement.appendChild(tdTanggal)
+                trElement.appendChild(tdShubuh)
+                trElement.appendChild(tdDhuhur)
+                trElement.appendChild(tdAshar)
+                trElement.appendChild(tdMaghrib)
+                trElement.appendChild(tdIsya)
+
+                jadwalRangeTableBody.append(trElement)
+            }
+            // jadwalRangeTableBody.append('`<td></td>`')
+            // jadwalRangeTableBody.append(`'<td>${response["jadwal"]["shubuh"]}</td>'`)
+            // jadwalRangeTableBody.append(`'<td>${response["jadwal"]["dhuhur"]}</td>'`)
+            // jadwalRangeTableBody.append(`'<td>${response["jadwal"]["ashar"]}</td>'`)
+            // jadwalRangeTableBody.append(`'<td>${response["jadwal"]["maghrib"]}</td>'`)
+            // jadwalRangeTableBody.append(`'<td>${response["jadwal"]["isya'"]}</td>'`)
+
+            // jadwalShubuhTitle.text(response["jadwal"]["shubuh"])
+            // jadwalDhuhurTitle.text(response["jadwal"]["dhuhur"])
+            // jadwalAsharTitle.text(response["jadwal"]["ashar"])
+            // jadwalMaghribTitle.text(response["jadwal"]["maghrib"])
+            // jadwalIsyaTitle.text(response["jadwal"]["isya'"])
         }
     </script>
 
