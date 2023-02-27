@@ -28,6 +28,95 @@
     </header>
 
     <main>
+        <div id="rangePilih">
+            <div class="container">
+                <div class="row">
+                    <div class="col">
+
+                        <div class="row">
+                            <div class="col-md-6">
+
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="rangeAtauSpesifik" id="spesifik" value="spesifik" checked>
+                                        <label class="form-check-label" for="rangeAtauSpesifik1">
+                                          Jadwal Spesifik
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="rangeAtauSpesifik" id="range" value="range">
+                                        <label class="form-check-label" for="rangeAtauSpesifik2">
+                                            <i>Range Jadwal</i>
+                                        </label>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <div class="col-md-6">
+
+                                <div id="spesifikForm">
+                                    <form action="" method="get">
+                                        <div class="mb-3">
+                                            <label for="spesifikDate" class="form-label">Tanggal</label>
+                                            <input type="date" name="spesifikDate" class="form-control" id="spesifikDate">
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <div id="rangeForm" style="display: none;">
+                                    <form action="" method="get">
+                                        <div class="mb-3">
+                                            <label for="rangeStartDate" class="form-label">Rentang Awal</label>
+                                            <input type="date" name="rangeStartDate" class="form-control" id="rangeStartDate">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="rangeEndDate" class="form-label">Rentang Akhir</label>
+                                            <input type="date" class="form-control" id="rangeEndDate">
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <button type="submit" class="btn btn-primary">Buka Jadwal</button>
+                                        </div>
+                                    </form>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <script>
+                            // Fungsi: Mendapatkan tanggal hari ini
+                            function getTodayDate() {
+                                var now = new Date();
+                                var day = ("0" + now.getDate()).slice(-2);
+                                var month = ("0" + (now.getMonth() + 1)).slice(-2);
+
+                                var today = now.getFullYear()+"-"+(month)+"-"+(day) ;
+                                return today
+                            }
+
+                            // Atur tanggal default
+                            $("#spesifikDate").val(getTodayDate())
+                            $("#rangeStartDate").val(getTodayDate())
+
+                            // Proses pilihan opsi
+                            $("input[name=rangeAtauSpesifik]").change(function() {
+                                if (this.value == "spesifik") {
+                                    $("#spesifikForm").show()
+                                    $("#rangeForm").hide()
+                                } else if (this.value == "range") {
+                                    $("#spesifikForm").hide()
+                                    $("#rangeForm").show()
+                                }
+                            })
+                        </script>
+
+                        <hr>
+
+                    </div>
+                </div>
+            </div>
+        </div>
         <div id="lokasi-info">
             <div class="container">
                 <div class="row">
